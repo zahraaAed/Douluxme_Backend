@@ -1,13 +1,13 @@
-import { Router } from 'express';
-import { loginUser, registerUser } from '../Controllers/userController';
+// src/Routes/userRoute.ts
+import express, { Request, Response } from 'express';
+import { register, login, logout } from '../Controllers/userController.js';
 
+// Create an Express router instance
+const router = express.Router();
 
-const router = Router();
-
-// POST /api/users/register
-router.post('/register', registerUser);
-
-// POST /api/users/login
-router.post('/login', loginUser);
+// Use proper types for each route handler
+router.post('/register', register);
+router.post('/login', login);
+router.post('/logout', logout);
 
 export default router;

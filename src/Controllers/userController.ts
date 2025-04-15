@@ -1,89 +1,102 @@
-import { Request, Response, NextFunction } from 'express';
-import supabase from '../Config/supabaseClient';
-export const registerUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { name, email, password, role, address } = req.body;
+import { Request, Response } from 'express';
+import User from '../Models/userModel.js'; // Correct import of the User model
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
 
+dotenv.config();
+
+interface RegisterBody {
+  email: string;
+  password: string;
+  name: string;
+  role?: 'customer' | 'admin';
+  address: {
+    phone: string;
+    region: string;
+    address_direction: string;
+    building: string;
+    floor: string;
+  };
+}
+
+interface LoginBody {
+  email: string;
+  password: string;
+}
+
+export const register = async (
+  req: Request<{}, {}, RegisterBody>, // Explicitly define types for Request
+  res: Response
+): Promise<Response> => {
   try {
-    if (!password) {
-      return res.status(400).json({ error: 'Password is required' });
+    const { email, password, name, role, address } = req.body;
+
+    // Check if user exists
+    const existingUser = await User.findOne({ where: { email } });
+    if (existingUser) {
+      return res.status(400).json({ message: 'User already exists' });
     }
 
-    // Sign up user in Supabase Auth
-    const { data: signUpData, error: authError } = await supabase.auth.signUp({
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create new user
+    const newUser = await User.create({
       email,
-      password,
+      password: hashedPassword,
+      name,
+      address,
+      role: role ?? 'customer', // default role
     });
 
-    const user = signUpData?.user;
-
-    if (authError || !user) {
-      throw new Error(authError?.message || 'User creation failed');
-    }
-
-    // Insert user info into the 'users' table
-    const { error: dbError } = await supabase.from('users').insert([{
-      id: user.id,
-      name,
-      email,
-      role,
-      address,
-    }]);
-
-    if (dbError) {
-      throw new Error(dbError.message || 'Error inserting user into database');
-    }
-
-    res.status(201).json({ message: 'User registered successfully' });
-  } catch (error: any) {
-    next(error); // Pass the error to the error handler
+    return res.status(201).json({ message: 'User created successfully', userId: newUser.id });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
   }
 };
 
-// Login a user
-export const loginUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { email, password } = req.body;
-
+// Login function
+export const login = async (
+  req: Request<{}, {}, LoginBody>, // Explicit types for request body
+  res: Response
+): Promise<Response> => {
   try {
-    if (!email || !password) {
-      return res.status(400).json({ error: 'Email and Password are required' });
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ where: { email } });
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Log in user with Supabase Auth
-    const { data: loginData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    const user = loginData?.user;
-    const session = loginData?.session;
-
-    if (authError || !user || !session) {
-      throw new Error(authError?.message || 'Login failed');
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    // Fetch additional user info from the "users" table
-    const { data: userData, error: userError } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single();
+    const token = jwt.sign(
+      { userId: user.id, role: user.role },
+      process.env.JWT_SECRET ?? '',
+      { expiresIn: '1d' }
+    );
 
-    if (userError) {
-      throw new Error(userError.message || 'Error fetching user data');
-    }
-
-    // Set token in cookie
-    res.cookie('token', session.access_token, {
+    res.cookie('token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
+      maxAge: 24 * 60 * 60 * 1000,
     });
 
-    res.status(200).json({
-      message: 'Login successful',
-      user: userData,
-    });
-  } catch (error: any) {
-    next(error); // Pass the error to the error handler
+    return res.json({ message: 'Logged in successfully', user: { id: user.id, role: user.role } });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
   }
+};
+
+// Logout function
+export const logout = (req: Request, res: Response): Response => {
+  res.clearCookie('token');
+  return res.json({ message: 'Logged out successfully' });
 };
