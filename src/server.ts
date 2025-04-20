@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 
 import sequelize from './Config/db.js';
+import path from 'path';
 import cors from 'cors';
 
 import userRoute from './Routes/userRoute.js';
@@ -17,14 +18,12 @@ app.use(cors({
   origin: 'http://localhost:3000',
   credentials: true,
 }));
-app.options('*', cors({
-  origin: 'http://localhost:3000',
-  credentials: true,
-}));
+
 
 // Middleware
 app.use(cookieParser());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 
 
@@ -33,13 +32,13 @@ app.get('/', (_req: Request, res: Response) => {
   res.send('API is working with TypeScript!');
 });
 app.use('/api/users', userRoute);
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+app.use('/api/products', productRoute);
 app.use('/api/categories', categoryRoute);
 app.use('/api/nuts', nutRoute);
 app.use('/api/chocolates', chocolateRoute);
-app.use('/api/products', productRoute);
-
 // Sequelize Sync and Server Start
-sequelize.sync({ alter: true }) // alter updates schema to match models
+sequelize.sync({ alter: false }) // alter updates schema to match models
   .then(() => {
     console.log('Database connected and synchronized.');
     const PORT = process.env.PORT || 5000;

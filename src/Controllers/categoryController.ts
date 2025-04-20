@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import Category from '../Models/categoryModel.js';
+import Product from '../Models/productModel.js'; // Import the Product model
 
 interface CategoryBody {
     id: number;
@@ -65,45 +66,56 @@ export const getCategoryById = async (req: Request, res: Response): Promise<Resp
 };
 
 export const updateCategory = async (req: Request, res: Response): Promise<Response> => {
-    const { id } = req.params;
-    const { name } = req.body;
-    const imageFile = req.file;
-  
-    try {
-      const category = await Category.findByPk(id);
-      if (!category) {
-        return res.status(404).json({ message: 'Category not found' });
-      }
-  
-      // Update fields
-      category.name = name || category.name;
-      if (imageFile) {
-        category.image = imageFile.filename;
-      }
-  
-      await category.save();
-  
-      return res.status(200).json({ message: 'Category updated successfully', category });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Server error' });
+  const { id } = req.params;
+
+  if (!req.body) {
+    return res.status(400).json({ message: 'Request body is missing' });
+  }
+
+  const { name } = req.body;
+  const imageFile = req.file;
+
+  try {
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
     }
-  };
-  
+
+    // Update fields
+    category.name = name || category.name;
+    if (imageFile) {
+      category.image = imageFile.filename;
+    }
+
+    await category.save();
+
+    return res.status(200).json({ message: 'Category updated successfully', category });
+  } catch (error) {
+    console.error('Error updating category:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
 
 export const deleteCategory = async (req: Request, res: Response): Promise<Response> => {
-    const { id } = req.params;
-    try {
-        const category = await Category.findByPk(id);
-        if (!category) {
-            return res.status(404).json({ message: 'Category not found' });
-        }
+  const { id } = req.params;
 
-        // Delete category
-        await category.destroy();
-        return res.status(200).json({ message: 'Category deleted successfully' });
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+  try {
+    const category = await Category.findByPk(id);
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found' });
     }
+
+    // Delete related products first
+    await Product.destroy({ where: { categoryId: id } });
+
+    // Then delete the category
+    await category.destroy();
+
+    return res.status(200).json({ message: 'Category and related products deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
+  }
 };

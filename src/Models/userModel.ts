@@ -1,7 +1,6 @@
-import { DataTypes, Model, Optional } from 'sequelize';
+import { DataTypes, Model, type Optional } from 'sequelize';
 import sequelize from '../Config/db.js';  // Import the sequelize instance
 
-// Interface for the User attributes (without id)
 export interface UserAttributes {
   id: number;
   email: string;
@@ -17,7 +16,6 @@ export interface UserAttributes {
   } | null;
 }
 
-// Interface for creating a User (excluding the `id`)
 export interface UserCreationAttributes extends Optional<UserAttributes, 'id'> {}
 
 class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
@@ -34,12 +32,10 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
     floor: string;
   } | null;
 
-  // Timestamps
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
 
-// Initialize the model
 User.init(
   {
     id: {
@@ -70,9 +66,9 @@ User.init(
     },
   },
   {
-    sequelize, // Pass in the sequelize instance
+    sequelize,
     modelName: 'User',
-    tableName: 'Users',
+    tableName: 'users',
     timestamps: true,
   }
 );

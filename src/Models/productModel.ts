@@ -1,9 +1,5 @@
-import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../Config/db.js';
-import Nut from './nutModel.js';
-import Chocolate from './chocolateModel.js';
-import Category from './categoryModel.js';
-import User from './userModel.js'; // Assuming you have a User model
+import { DataTypes, Model, Optional } from 'sequelize';
 
 export interface ProductAttributes {
   id: number;
@@ -11,13 +7,13 @@ export interface ProductAttributes {
   nutId: number;
   chocolateId: number;
   categoryId: number;
-  userId: number;  // Admin who created or updated the product
-  boxSize?: number;  // Optional: only for products that are boxes
+  userId: number;
+  boxSize?: number;
   price: number;
   image: string;
 }
 
-export interface ProductCreationAttributes extends Optional<ProductAttributes, 'id'> {}
+interface ProductCreationAttributes extends Optional<ProductAttributes, 'id'> {}
 
 class Product extends Model<ProductAttributes, ProductCreationAttributes> implements ProductAttributes {
   public id!: number;
@@ -25,11 +21,10 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
   public nutId!: number;
   public chocolateId!: number;
   public categoryId!: number;
-  public userId!: number;  // Admin who created or updated the product
-  public boxSize?: number;  // Optional field for boxes
+  public userId!: number;
+  public boxSize?: number;
   public price!: number;
   public image!: string;
-
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -49,7 +44,7 @@ Product.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Nut,
+        model: 'nuts',
         key: 'id',
       },
     },
@@ -57,7 +52,7 @@ Product.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Chocolate,
+        model: 'chocolates',
         key: 'id',
       },
     },
@@ -65,7 +60,7 @@ Product.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: Category,
+        model: 'categories',
         key: 'id',
       },
     },
@@ -73,19 +68,16 @@ Product.init(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: User,  // Assuming you have a User model
+        model: 'users',
         key: 'id',
       },
     },
     boxSize: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      validate: {
-        isIn: [[8, 12, 24]],  // Only allows box sizes 6, 12, or 24
-      },
     },
     price: {
-      type: DataTypes.FLOAT,
+      type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
     image: {
@@ -101,8 +93,21 @@ Product.init(
   }
 );
 
-// Association between User and Product (One-to-Many relationship)
-User.hasMany(Product, { foreignKey: 'userId' });
-Product.belongsTo(User, { foreignKey: 'userId' });
+// Define associations separately
+export async function setupAssociations() {
+  const [nutModel, chocolateModel, categoryModel, userModel] = await Promise.all([
+    import('./nutModel.js'),
+    import('./chocolateModel.js'),
+    import('./categoryModel.js'),
+    import('./userModel.js'),
+  ]);
+
+  Product.belongsTo(nutModel.default, { foreignKey: 'nutId' });
+  Product.belongsTo(chocolateModel.default, { foreignKey: 'chocolateId' });
+  Product.belongsTo(categoryModel.default, { foreignKey: 'categoryId' });
+  Product.belongsTo(userModel.default, { foreignKey: 'userId' });
+}
+
+setupAssociations();
 
 export default Product;

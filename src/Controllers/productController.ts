@@ -1,9 +1,10 @@
 import { Request, Response } from 'express';
-import Product from '../Models/productModel.js';
-import Category from '../Models/categoryModel.js';
+/* import Product from '../Models/productModel.js'; */
+/* import Category from '../Models/categoryModel.js';
 import Nut from '../Models/nutModel.js';
 import Chocolate from '../Models/chocolateModel.js';
-import User from '../Models/userModel.js';
+import User from '../Models/userModel.js'; */
+import { Product, Category, Nut, Chocolate, User } from '../Models/index.js';
 
 // Define the type for the product body
 interface ProductBody {

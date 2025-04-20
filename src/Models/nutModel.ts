@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import sequelize from '../Config/db.js';
-
+import Product from './productModel.js'; // Assuming you have a Product model
 export interface NutAttributes {
   id: number;
   variety: string;
@@ -46,5 +46,9 @@ Nut.init(
     timestamps: true,
   }
 );
+// In the Nut model (e.g., nut.ts)
+export function associateNut(productModel: typeof import('./productModel.js').default) {
+  Nut.hasMany(productModel, { foreignKey: 'nutId' });
+}
 
 export default Nut;

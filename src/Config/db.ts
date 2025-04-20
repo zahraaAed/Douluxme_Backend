@@ -1,25 +1,25 @@
-import { Sequelize } from 'sequelize';
-import dotenv from 'dotenv';
+import { Sequelize } from "sequelize"
+import dotenv from "dotenv"
 
-dotenv.config();
+dotenv.config()
 
 if (!process.env.SUPABASE_DB) {
-  throw new Error('SUPABASE_DB is not defined in .env');
+  throw new Error("SUPABASE_DB is not defined in .env")
 }
 
-const dbUrl = process.env.SUPABASE_DB!;
-const urlParts = new URL(dbUrl); // Parse the URL
-const host = urlParts.hostname; // Extract the hostname
+const dbUrl = process.env.SUPABASE_DB
+const urlParts = new URL(dbUrl)
+const host = urlParts.hostname
 
 const sequelize = new Sequelize(dbUrl, {
-  dialect: 'postgres',
-  logging: false, // Set to true for SQL query logging in dev
+  dialect: "postgres",
+  logging: false,
   dialectOptions: {
-    host: host, // Explicitly set the host
-    ssl: { require: true, rejectUnauthorized: false }, // SSL required by Supabase
-    // Force IPv4 by adding this:
-    ipv6: false, // Disable IPv6
+    host: host,
+    ssl: { require: true, rejectUnauthorized: false },
+    ipv6: false,
   },
-});
+})
 
-export default sequelize;
+// Only export the sequelize instance - DO NOT import models here!
+export default sequelize

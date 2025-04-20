@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import Chocolate from '../Models/chocolateModel.js';
-
+import Product from '../Models/productModel.js'; // Import the Product model
 interface ChocolateBody { 
     id: number;
     type: string;
@@ -58,41 +58,59 @@ export const getChocolateById = async (req: Request, res: Response): Promise<Res
     }
 };
 
-export const updateChocolate = async (req: Request, res: Response): Promise<Response> => {        
+export const updateChocolate = async (req: Request, res: Response): Promise<Response> => {
     const { id } = req.params;
+  
+    // Handle if req.body is undefined
+    if (!req.body) {
+      return res.status(400).json({ message: 'No update data provided' });
+    }
+  
     const { type, price } = req.body;
+  
     try {
-        const chocolate = await Chocolate.findByPk(id);
-        if (!chocolate) {
-            return res.status(404).json({ message: 'Chocolate not found' });
-        }
-
-        // Update chocolate attributes
-        chocolate.type = type;
-        chocolate.price = price;
-       
-
-        await chocolate.save();
-        return res.status(200).json({ message: 'Chocolate updated successfully', chocolate });
+      const chocolate = await Chocolate.findByPk(id);
+      if (!chocolate) {
+        return res.status(404).json({ message: 'Chocolate not found' });
+      }
+  
+      // Optional chaining to allow partial updates
+      if (type !== undefined) chocolate.type = type;
+      if (price !== undefined) chocolate.price = price;
+  
+      await chocolate.save();
+  
+      return res.status(200).json({
+        message: 'Chocolate updated successfully',
+        chocolate,
+      });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+      console.error('Update Chocolate Error:', error);
+      return res.status(500).json({ error: 'Server error' });
     }
-};
-
-export const deleteChocolate = async (req: Request, res: Response): Promise<Response> => {        
+  };
+  
+  export const deleteChocolate = async (req: Request, res: Response): Promise<Response> => {
     const { id } = req.params;
+  
     try {
-        const chocolate = await Chocolate.findByPk(id);
-        if (!chocolate) {
-            return res.status(404).json({ message: 'Chocolate not found' });
-        }
-        
-        // Delete chocolate
-        await chocolate.destroy();
-        return res.status(200).json({ message: 'Chocolate deleted successfully' });
+      const chocolate = await Chocolate.findByPk(id);
+      if (!chocolate) {
+        return res.status(404).json({ message: 'Chocolate not found' });
+      }
+  
+      // First, delete products referencing this chocolate
+      await Product.destroy({ where: { chocolateId: id } });
+  
+      // Then, delete the chocolate
+      await chocolate.destroy();
+  
+      return res.status(200).json({
+        message: 'Chocolate and associated products deleted successfully',
+      });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+      console.error('Delete Chocolate Error:', error);
+      return res.status(500).json({ error: 'Server error' });
     }
-};
+  };
+  
