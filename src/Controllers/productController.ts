@@ -1,9 +1,4 @@
 import { Request, Response } from 'express';
-/* import Product from '../Models/productModel.js'; */
-/* import Category from '../Models/categoryModel.js';
-import Nut from '../Models/nutModel.js';
-import Chocolate from '../Models/chocolateModel.js';
-import User from '../Models/userModel.js'; */
 import { Product, Category, Nut, Chocolate, User } from '../Models/index.js';
 
 // Define the type for the product body
@@ -69,12 +64,15 @@ export const createProduct = async (
       return res.status(500).json({ error: 'Server error' });
     }
   };
-  
-// Get All Products
-export const getProducts = async (req: Request, res: Response): Promise<Response> => {
+  //get all products
+  export const getProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
         const products = await Product.findAll({
-            include: [Nut, Chocolate, Category], // Include related models
+            include: [
+                { model: Nut, as: 'nut' },
+                { model: Chocolate, as: 'chocolate' },
+                { model: Category, as: 'category' },
+            ],
         });
         return res.status(200).json(products);
     } catch (error) {

@@ -3,6 +3,7 @@ import dotenv from 'dotenv';
 import cookieParser from 'cookie-parser';
 
 import sequelize from './Config/db.js';
+import { setupAssociations } from './Models/associations.js';
 import path from 'path';
 import cors from 'cors';
 
@@ -11,6 +12,11 @@ import nutRoute from './Routes/nutRoute.js';
 import categoryRoute from './Routes/categoryRoute.js';
 import chocolateRoute from './Routes/chocolateRoute.js';
 import productRoute from './Routes/productRoute.js';
+import feedbackRoute from './Routes/feedbackRoute.js';
+import orderRoute from './Routes/orderRoute.js';
+import cartRoute from './Routes/cartRoute.js';
+import orderDetailRoute from './Routes/orderDetailRoute.js';
+
 dotenv.config();
 
 const app = express();
@@ -37,7 +43,16 @@ app.use('/api/products', productRoute);
 app.use('/api/categories', categoryRoute);
 app.use('/api/nuts', nutRoute);
 app.use('/api/chocolates', chocolateRoute);
+app.use('/api/feedbacks', feedbackRoute);
+app.use('/api/orders', orderRoute);
+app.use('/api/carts', cartRoute);
+app.use('/api/orderDetails', orderDetailRoute);
 // Sequelize Sync and Server Start
+
+
+
+
+setupAssociations(); 
 sequelize.sync({ alter: false }) // alter updates schema to match models
   .then(() => {
     console.log('Database connected and synchronized.');

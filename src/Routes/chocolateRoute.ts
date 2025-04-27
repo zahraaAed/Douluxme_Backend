@@ -1,4 +1,4 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
 import { createChocolate, deleteChocolate, getChocolateById, getChocolates, updateChocolate } from '../Controllers/chocolateController.js';
 import { authenticate, authorize } from '../Middleware/authMiddleware.js'; 
 

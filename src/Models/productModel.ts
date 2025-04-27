@@ -1,3 +1,4 @@
+// productModel.ts
 import sequelize from '../Config/db.js';
 import { DataTypes, Model, Optional } from 'sequelize';
 
@@ -43,34 +44,18 @@ Product.init(
     nutId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'nuts',
-        key: 'id',
-      },
     },
     chocolateId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'chocolates',
-        key: 'id',
-      },
     },
     categoryId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'categories',
-        key: 'id',
-      },
     },
     userId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: 'users',
-        key: 'id',
-      },
     },
     boxSize: {
       type: DataTypes.INTEGER,
@@ -92,22 +77,5 @@ Product.init(
     timestamps: true,
   }
 );
-
-// Define associations separately
-export async function setupAssociations() {
-  const [nutModel, chocolateModel, categoryModel, userModel] = await Promise.all([
-    import('./nutModel.js'),
-    import('./chocolateModel.js'),
-    import('./categoryModel.js'),
-    import('./userModel.js'),
-  ]);
-
-  Product.belongsTo(nutModel.default, { foreignKey: 'nutId' });
-  Product.belongsTo(chocolateModel.default, { foreignKey: 'chocolateId' });
-  Product.belongsTo(categoryModel.default, { foreignKey: 'categoryId' });
-  Product.belongsTo(userModel.default, { foreignKey: 'userId' });
-}
-
-setupAssociations();
 
 export default Product;
