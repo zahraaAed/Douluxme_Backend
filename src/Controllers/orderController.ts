@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
-import{Order, User} from "../Models/index.js";
+import{Order, User, OrderDetail, Product} from "../Models/index.js";
 import { OrderStatus, PaymentMethod } from '../Models/order.js';
+
 
 interface OrderBody {
     userId: number;
@@ -10,22 +11,32 @@ interface OrderBody {
     paymentMethod: PaymentMethod;
   }
 
-export const createOrder = async (
+  export const createOrder = async (
     req: Request<{}, {}, OrderBody>,
     res: Response
 ): Promise<Response> => {
     try {
-        const { userId, subtotalPrice, price, status, paymentMethod } = req.body;
+        const {subtotalPrice, price, status, paymentMethod } = req.body;
 
-        // Check if user exists
-        const user = await User.findByPk(userId);
-        if (!user) {
+        // Ensure user is authenticated and is an admin
+        if (!req.user) {
+            return res.status(401).json({ message: 'Unauthorized' });
+        }
+
+        const user = await User.findByPk(req.user.userId);
+        if (!user || user.role !== 'customer') {
+            return res.status(403).json({ message: 'Permission denied. customer access required.' });
+        }
+
+        // Check if the user for the order exists
+        const orderUser = await User.findByPk(req.user.userId);
+        if (!orderUser) {
             return res.status(404).json({ message: 'User not found' });
         }
 
         // Create new order
         const newOrder = await Order.create({
-            userId,
+            userId: parseInt(req.user.userId),
             subtotalPrice,
             price,
             status,
@@ -37,7 +48,8 @@ export const createOrder = async (
         console.error(error);
         return res.status(500).json({ error: 'Server error' });
     }
-}
+};
+
 export const getOrders = async (req: Request, res: Response): Promise<Response> => {    
     try {
         const orders = await Order.findAll({
@@ -122,26 +134,53 @@ export const deleteOrder = async (req: Request, res: Response): Promise<Response
     }
 }
 export const getOrdersByUserId = async (req: Request, res: Response): Promise<Response> => {
-  const { userId } = req.params;
+    const userId = req.params.userId;
+  
+    // Check if the userId is valid (numeric)
     if (!userId || isNaN(Number(userId))) {
-        return res.status(400).json({ message: 'Invalid user ID' });
-    }   
-    try {
-        const orders = await Order.findAll({
-            where: { userId },
-            include: [
-                { model: User, as: 'user' }
-            ],
-        });
-        if (!orders) {
-            return res.status(404).json({ message: 'No orders found for this user' });
-        }
-        return res.status(200).json(orders);
-    } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+      return res.status(400).json({ message: 'Invalid user ID' });
     }
-}
+  
+    // SECURITY: only allow user to access their own orders or if admin
+    if (!req.user || (req.user.role !== 'customer' && req.user.userId !== userId)) {
+      return res.status(403).json({ message: 'Unauthorized access' });
+    }
+  
+    try {
+      // Fetch the orders for the specified userId
+      const orders = await Order.findAll({
+        where: { userId: Number(userId) },
+        include: [
+          { model: User, as: 'user' },
+          {
+            model: OrderDetail,
+            as: 'orderDetails', // ⚠️ Must match your association alias
+            include: [
+              {
+                model: Product,
+                as: 'product', // ⚠️ Also must match your association alias
+                attributes: ['id', 'name', 'price', 'image'], // Optional: restrict fields
+              },
+            ],
+          },
+        ],
+        order: [['createdAt', 'DESC']],
+      });
+      
+  
+      // Handle case where no orders are found
+      if (!orders.length) {
+        return res.status(404).json({ message: 'No orders found for this user' });
+      }
+  
+      return res.status(200).json(orders);
+    } catch (error) {
+      console.error(error);
+      return res.status(500).json({ error: 'Server error' });
+    }
+  };
+  
+  
 export const getOrdersByStatus = async (req: Request, res: Response): Promise<Response> => {
     const { status } = req.params;
 

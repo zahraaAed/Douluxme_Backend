@@ -122,7 +122,7 @@ export const deleteCart = async (req: Request, res: Response): Promise<Response>
     }
 }   
 export const getCartsByUserId = async (req: Request, res: Response): Promise<Response> => {
-    const { userId } = req.params;
+    const userId = req.user?.userId;
 
     if (!userId || isNaN(Number(userId))) {
         return res.status(400).json({ message: 'Invalid user ID' });
@@ -141,9 +141,12 @@ export const getCartsByUserId = async (req: Request, res: Response): Promise<Res
         console.error(error);
         return res.status(500).json({ error: 'Server error' });
     }
-}
+};
+
 export const getCartsByProductId = async (req: Request, res: Response): Promise<Response> => {
-    const { productId } = req.params;
+    const { id: productId } = req.params; // destructure id from params instead of productId
+    console.log('productId:', productId);
+    
 
     if (!productId || isNaN(Number(productId))) {
         return res.status(400).json({ message: 'Invalid product ID' });

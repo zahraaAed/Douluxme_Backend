@@ -21,10 +21,11 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true,
+  origin: 'http://localhost:3000',  // Frontend URL (make sure it's correct)
+  methods: 'GET, POST, PUT, DELETE, PATCH',  // Allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'],  // Allowed headers
+  credentials: true,  // Allow cookies to be sent with cross-origin requests
 }));
-
 
 // Middleware
 app.use(cookieParser());
@@ -53,7 +54,7 @@ app.use('/api/orderDetails', orderDetailRoute);
 
 
 setupAssociations(); 
-sequelize.sync({ alter: false }) // alter updates schema to match models
+sequelize.sync({ alter: true}) // alter updates schema to match models
   .then(() => {
     console.log('Database connected and synchronized.');
     const PORT = process.env.PORT || 5000;

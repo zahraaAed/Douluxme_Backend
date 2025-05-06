@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Product, Category, Nut, Chocolate, User } from '../Models/index.js';
+import Sequelize from 'sequelize';
 
 // Define the type for the product body
 interface ProductBody {
@@ -85,9 +86,14 @@ export const createProduct = async (
 export const getProductById = async (req: Request, res: Response): Promise<Response> => {
     const { id } = req.params;
     try {
-        const product = await Product.findByPk(id, {
-            include: [Nut, Chocolate, Category], // Include related models
-        });
+      const product = await Product.findByPk(id, {
+        include: [
+            { model: Nut, as: 'nut' },
+            { model: Chocolate, as: 'chocolate' },
+            { model: Category, as: 'category' },
+        ],
+    });
+    
         if (!product) {
             return res.status(404).json({ message: 'Product not found' });
         }
@@ -166,3 +172,21 @@ export const deleteProduct = async (req: Request, res: Response): Promise<Respon
         return res.status(500).json({ error: 'Server error' });
     }
 };
+// Get Products by Category
+// Get Products by Category
+export const getProductsByCategory = async (req: Request, res: Response): Promise<Response> => {
+  const { categoryId } = req.params; // Extract categoryId from URL params
+  try {
+      const products = await Product.findAll({
+          where: { categoryId },
+          include: [
+              { model: Nut, as: 'nut' },
+              { model: Chocolate, as: 'chocolate' },
+          ],
+      });
+      return res.status(200).json(products); // Return the products in JSON format
+  } catch (error) {
+      console.error(error); // Log any errors for debugging
+      return res.status(500).json({ error: 'Server error' }); // Handle any server errors
+  }
+}

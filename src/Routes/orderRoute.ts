@@ -15,7 +15,7 @@ router.patch('/update/:id', authenticate, authorize(['admin']), updateOrder);
 router.delete('/delete/:id', authenticate, authorize(['admin']), deleteOrder);
 
 // Route to get orders by user ID
-router.get('/user/:userId', authenticate, authorize(['admin']), getOrdersByUserId);
+router.get('/user/:userId', authenticate, authorize(['customer']), getOrdersByUserId);
 // Route to get orders by status
 router.get('/status/:status', authenticate, authorize(['admin']), getOrdersByStatus);
 // Route to get orders by payment method

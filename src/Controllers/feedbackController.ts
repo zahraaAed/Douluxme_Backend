@@ -11,25 +11,34 @@ interface FeedbackBody {
 }
 
 export const createFeedback = async (
-    req: Request<{}, {}, FeedbackBody>, // Explicitly define types for Request
+    req: Request,
     res: Response
   ): Promise<Response> => {
     try {
-      const { comment, ProductId, UserId } = req.body;
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
   
-      // Check if feedback already exists for the same user and product
+      const user = await User.findByPk(req.user.userId);
+      if (!user || user.role !== 'customer') {
+        return res.status(403).json({ message: 'Permission denied. Customer access required.' });
+      }
+  
+      const { comment, ProductId } = req.body;
+      const UserId = parseInt(req.user.userId); // Extract userId from auth session/cookie
+  
+      if (!comment || !ProductId) {
+        return res.status(400).json({ message: 'Comment and ProductId are required.' });
+      }
+  
       const existingFeedback = await Feedback.findOne({
-        where: {
-          ProductId,
-          UserId
-        }
+        where: { ProductId, UserId }
       });
   
       if (existingFeedback) {
         return res.status(400).json({ message: 'User has already submitted feedback for this product' });
       }
   
-      // Create new feedback
       const newFeedback = await Feedback.create({
         comment,
         ProductId,
@@ -41,7 +50,9 @@ export const createFeedback = async (
       console.error(error);
       return res.status(500).json({ error: 'Server error' });
     }
-  }
+  };
+  
+  
 export const getFeedbacksByUserId = async (req: Request, res: Response): Promise<Response> => {
     const { userId } = req.params;
 
@@ -189,7 +200,7 @@ export const getFeedbackByProductId = async (req: Request, res: Response): Promi
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username'] // Adjust attributes as needed
+                    attributes: ['id', 'name'] // Adjust attributes as needed
                 }
             ]
         });

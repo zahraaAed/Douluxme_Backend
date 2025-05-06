@@ -6,6 +6,8 @@ import Category from "./categoryModel.js";
 import Feedback from "./feedbackModel.js";
 import Order from "./order.js";
 import OrderDetail from "./orderDetails.js";
+import Cart from "./cart.js";
+
 
 // Add this flag to track if associations have been set up
 let associationsSetup = false;
@@ -37,6 +39,7 @@ export function setupAssociations() {
 
   // 🔗 User ↔ Feedback
   User.hasMany(Feedback, { foreignKey: "UserId", as: "userFeedbacks" });
+  // 🔗 Feedback ↔ User
   Feedback.belongsTo(User, { foreignKey: "UserId", as: "user" });
 
   // 🔗 Product ↔ Feedback
@@ -51,6 +54,13 @@ export function setupAssociations() {
   Product.hasMany(OrderDetail, { foreignKey: "productId", as: "orderDetails" });
   OrderDetail.belongsTo(Product, { foreignKey: "productId", as: "product" });
 
+
+  //cart ↔ user
+  User.hasMany(Cart, { foreignKey: "userId", as: "userCarts" });
+  Cart.belongsTo(User, { foreignKey: "userId", as: "user" });
+  //product ↔ cart
+  Product.hasMany(Cart, { foreignKey: "productId", as: "productCarts" });
+  Cart.belongsTo(Product, { foreignKey: "productId", as: "product" });
   //order ↔ user
   User.hasMany(Order, { foreignKey: "userId", as: "orders" });
   Order.belongsTo(User, { foreignKey: "userId", as: "user" });

@@ -5,10 +5,10 @@ import { authenticate, authorize } from "../Middleware/authMiddleware.js"; // Im
 
 const router = express.Router();
 
-router.post("/create", authenticate, authorize(["admin"]), createOrderDetail);
+router.post("/create", authenticate, authorize(["customer"]), createOrderDetail);
 router.get("/get", authenticate, authorize(["admin"]), getOrderDetails);
-router.get("/get/:id", authenticate, authorize(["admin"]), getOrderDetailById);
 router.patch("/update/:id", authenticate, authorize(["admin"]), updateOrderDetail);
 router.delete("/delete/:id", authenticate, authorize(["admin"]), deleteOrderDetail);
-router.get("/order/:orderId", authenticate, authorize(["admin"]), getOrderDetailById);
+router.get("/order/:orderId", authenticate, authorize(["admin", "customer"]), getOrderDetailById);
+
 export default router;

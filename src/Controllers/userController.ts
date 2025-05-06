@@ -25,6 +25,7 @@ interface LoginBody {
   password: string;
 }
 
+
 export const register = async (
   req: Request<{}, {}, RegisterBody>, // Explicitly define types for Request
   res: Response
@@ -88,7 +89,8 @@ export const login = async (
 
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+ /*      secure: process.env.NODE_ENV === 'production', */
+ secure: false, // Set to true in production
       sameSite: 'lax',
       maxAge: 24 * 60 * 60 * 1000,
     });
@@ -104,4 +106,85 @@ export const login = async (
 export const logout = (req: Request, res: Response): Response => {
   res.clearCookie('token');
   return res.json({ message: 'Logged out successfully' });
+};
+
+//delete user
+export const deleteUser = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+  try {
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    await user.destroy();
+    return res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+//update user
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<Response> => {
+  const { id } = req.params;
+  const { email, password, name, role, address } = req.body;
+
+  try {
+    const user = await User.findByPk(id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Update user details
+    user.email = email;
+    user.name = name;
+    user.role = role;
+    user.address = address;
+
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+
+    await user.save();
+    return res.status(200).json({ message: 'User updated successfully', user });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+//get all users
+export const getAllUsers = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    const users = await User.findAll();
+    return res.status(200).json(users);
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
+
+
+//get me
+
+export const getMe = async (req: Request, res: Response): Promise<Response> => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    const user = await User.findByPk(req.user.userId, {
+      attributes: ['id', 'name', 'email', 'role', 'address'],
+    });
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    return res.status(200).json({ user });
+  } catch (err) {
+    console.error('Get Me Error:', err);
+    return res.status(500).json({ error: 'Something went wrong' });
+  }
 };
