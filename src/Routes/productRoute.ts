@@ -7,7 +7,7 @@ const router = express.Router();
 
 // Add image upload handling
 router.post('/create', authenticate, authorize(['admin']), upload.single('image'), createProduct); // For image upload in POST
-router.patch('/update/:id', authenticate, authorize(['admin']), upload.single('image'), updateProduct); // For image upload in PUT
+router.patch('/update/:id', authenticate, authorize(['admin']), upload.single('image'), updateProduct);
 router.get('/get', getProducts);
 router.get('/get/:id', getProductById);
 router.delete('/delete/:id', authenticate, authorize(['admin']), deleteProduct);

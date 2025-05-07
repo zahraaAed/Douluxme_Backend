@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 const storage = multer.diskStorage({
   destination: (req: Request, file: Express.Multer.File, cb) => {
-    const dir = path.join(__dirname, '../../uploads/products');
+    const dir = path.join(__dirname, '../../uploads');
 
     if (!fs.existsSync(dir)) {
       fs.mkdirSync(dir, { recursive: true });

@@ -12,6 +12,8 @@ export interface ProductAttributes {
   boxSize?: number;
   price: number;
   image: string;
+  extraNutIds?: number[] | null; // Optional array for extra nuts
+  extraChocolateIds?: number[] | null; // Optional array for extra chocolates
 }
 
 interface ProductCreationAttributes extends Optional<ProductAttributes, 'id'> {}
@@ -26,6 +28,8 @@ class Product extends Model<ProductAttributes, ProductCreationAttributes> implem
   public boxSize?: number;
   public price!: number;
   public image!: string;
+  public extraNutIds?: number[] | null; // Optional field for extra nuts
+  public extraChocolateIds?: number[] | null; // Optional field for extra chocolates
   public readonly createdAt!: Date;
   public readonly updatedAt!: Date;
 }
@@ -68,6 +72,14 @@ Product.init(
     image: {
       type: DataTypes.STRING,
       allowNull: false,
+    },
+    extraNutIds: {
+      type: DataTypes.JSON,
+      allowNull: true, // Optional array of nut IDs
+    },
+    extraChocolateIds: {
+      type: DataTypes.JSON,
+      allowNull: true, // Optional array of chocolate IDs
     },
   },
   {

@@ -1,70 +1,125 @@
 import { Request, Response } from 'express';
 import { Product, Category, Nut, Chocolate, User } from '../Models/index.js';
-import Sequelize from 'sequelize';
 
 // Define the type for the product body
 interface ProductBody {
-    name: string;
-    nutId: number;
-    userId: number; // Admin who created or updated the product
-    chocolateId: number;
-    categoryId: number; // Category can be used to classify products (e.g. gift, box, bar)
-    price: number;
-    image: string;
-    boxSize?: 6 | 12 | 24; // Optional box size for products
+  name: string;
+  nutIds: number[]; // Changed to an array for multiple nut IDs
+  userId: number; // Admin who created or updated the product
+  chocolateIds: number[]; // Changed to an array for multiple chocolate IDs
+  categoryId: number; // Category can be used to classify products (e.g. gift, box, bar)
+  price: number;
+  image: string;
+  boxSize?: 6 | 12 | 24; // Optional box size for products
 }
 
-// Create Product
-// Create Product
 export const createProduct = async (
-    req: Request<{}, {}, ProductBody>,
-    res: Response
-  ): Promise<Response> => {
-    const { name, nutId, chocolateId, categoryId, price, boxSize } = req.body;
-    const image = req.file ? req.file.filename : ''; // Default to empty string if no file
-  
-    try {
-      if (!req.user) {
-        return res.status(401).json({ message: 'Unauthorized' });
-      }
-  
-      const user = await User.findByPk(req.user.userId);
-      if (!user || user.role !== 'admin') {
-        return res.status(403).json({ message: 'Permission denied. Admin access required.' });
-      }
-  
-      const nut = await Nut.findByPk(nutId);
-      const chocolate = await Chocolate.findByPk(chocolateId);
-      const category = await Category.findByPk(categoryId);
-  
-      if (!nut || !chocolate || !category) {
-        return res.status(404).json({ message: 'Nut, Chocolate, or Category not found' });
-      }
-  
-      let finalPrice = price;
-      if (boxSize) {
-        if (![6, 12, 24].includes(boxSize)) {
-          return res.status(400).json({ message: 'Invalid box size. Allowed sizes are 6, 12, and 24.' });
-        }
-        finalPrice = price * boxSize; // Adjust price based on box size
-      }
-  
-      const newProduct = await Product.create({
-        name,
-        nutId,
-        chocolateId,
-        categoryId,
-        price: finalPrice,
-        image, // Store the image path in the database (it could be empty string if no file)
-        userId: parseInt(req.user.userId), // Use the logged-in user's ID
-      });
-  
-      return res.status(201).json({ message: 'Product created successfully', productId: newProduct.id });
-    } catch (error) {
-      console.error(error);
-      return res.status(500).json({ error: 'Server error' });
+  req: Request<{}, {}, any>,
+  res: Response
+): Promise<Response> => {
+  const { name, nutId, chocolateId, extraNutIds, extraChocolateIds, categoryId, price, boxSize } = req.body;
+  const image = req.file ? req.file.filename : '';
+
+  try {
+    if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
     }
-  };
+
+    const user = await User.findByPk(req.user.userId);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Permission denied. Admin access required.' });
+    }
+
+    // Validate that nutId and chocolateId are provided as single values
+    if (!nutId || !chocolateId) {
+      return res.status(400).json({ message: 'nutId and chocolateId are required.' });
+    }
+
+    // Validate extraNutIds and extraChocolateIds (if provided, they should be arrays)
+    let extraNutIdsArray: number[] = [];
+    let extraChocolateIdsArray: number[] = [];
+
+    if (extraNutIds) {
+      try {
+        extraNutIdsArray = JSON.parse(extraNutIds);  // Parse the extraNutIds JSON string into an array
+      } catch (error) {
+        return res.status(400).json({ message: 'Invalid extraNutIds format' });
+      }
+    }
+
+    if (extraChocolateIds) {
+      try {
+        extraChocolateIdsArray = JSON.parse(extraChocolateIds);  // Parse the extraChocolateIds JSON string into an array
+      } catch (error) {
+        return res.status(400).json({ message: 'Invalid extraChocolateIds format' });
+      }
+    }
+
+    // Validate nutId and chocolateId (should be valid ids)
+    const nut = await Nut.findByPk(nutId);
+    const chocolate = await Chocolate.findByPk(chocolateId);
+    const category = await Category.findByPk(categoryId);
+
+    if (!nut) {
+      return res.status(404).json({ message: 'Nut not found.' });
+    }
+
+    if (!chocolate) {
+      return res.status(404).json({ message: 'Chocolate not found.' });
+    }
+
+    if (!category) {
+      return res.status(404).json({ message: 'Category not found.' });
+    }
+
+    // Validate that extraNutIds and extraChocolateIds (if provided) are valid
+    if (extraNutIdsArray.length > 0) {
+      const extraNuts = await Nut.findAll({ where: { id: extraNutIdsArray } });
+      if (extraNuts.length !== extraNutIdsArray.length) {
+        return res.status(404).json({ message: 'One or more selected extra nuts not found.' });
+      }
+    }
+
+    if (extraChocolateIdsArray.length > 0) {
+      const extraChocolates = await Chocolate.findAll({ where: { id: extraChocolateIdsArray } });
+      if (extraChocolates.length !== extraChocolateIdsArray.length) {
+        return res.status(404).json({ message: 'One or more selected extra chocolates not found.' });
+      }
+    }
+
+    // Handle price and box size
+    let finalPrice = price;
+    if (boxSize) {
+      if (![6, 12, 24].includes(boxSize)) {
+        return res.status(400).json({ message: 'Invalid box size. Allowed sizes are 6, 12, and 24.' });
+      }
+      finalPrice = price * boxSize;
+    }
+
+    // Create product with the selected nutId and chocolateId, along with optional extraNutIds and extraChocolateIds
+    const newProduct = await Product.create({
+      name,
+      nutId, // Store the single nutId
+      chocolateId, // Store the single chocolateId
+      categoryId,
+      price: finalPrice,
+      image,
+      userId: parseInt(req.user.userId),
+      extraNutIds: extraNutIdsArray,  // Store the extra nuts if any
+      extraChocolateIds: extraChocolateIdsArray,  // Store the extra chocolates if any
+    });
+
+    return res.status(201).json({
+      message: 'Product created successfully',
+      productId: newProduct.id,
+    });
+  } catch (error) {
+    console.error('Product creation error:', error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+};
+
+
   //get all products
   export const getProducts = async (req: Request, res: Response): Promise<Response> => {
     try {
@@ -132,14 +187,24 @@ export const updateProduct = async (
         finalPrice = price * boxSize;
       }
   
-      product.name = name;
-      product.nutId = nutId;
-      product.chocolateId = chocolateId;
-      product.categoryId = categoryId;
-      product.price = finalPrice;
-      if (image) {
-        product.image = image; // Update the image if a new file is uploaded
+      if (name !== undefined) product.name = name;
+      if (nutId !== undefined) product.nutId = nutId;
+      if (chocolateId !== undefined) product.chocolateId = chocolateId;
+      if (categoryId !== undefined) product.categoryId = categoryId;
+      if (price !== undefined) {
+        if (boxSize) {
+          if (![6, 12, 24].includes(boxSize)) {
+            return res.status(400).json({ message: 'Invalid box size. Allowed sizes are 6, 12, and 24.' });
+          }
+          product.price = price * boxSize;
+        } else {
+          product.price = price;
+        }
       }
+      if (image) {
+        product.image = image;
+      }
+      
   
       await product.save();
       return res.status(200).json({ message: 'Product updated successfully', product });
