@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { Product, Category, Nut, Chocolate, User } from '../Models/index.js';
+import supabase from '../Config/supabaseClient.js';
 
 // Define the type for the product body
 interface ProductBody {

@@ -31,7 +31,7 @@ app.use(cors({
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.set('trust proxy', 1); // important if deployed behind a proxy like Heroku or Vercel
 
 
 // Routes

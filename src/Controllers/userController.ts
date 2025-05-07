@@ -86,14 +86,17 @@ export const login = async (
       process.env.JWT_SECRET ?? '',
       { expiresIn: '1d' }
     );
+    console.log('NODE_ENV:', process.env.NODE_ENV);
 
     res.cookie('token', token, {
       httpOnly: true,
- /*      secure: process.env.NODE_ENV === 'production', */
- secure: false, // Set to true in production
-      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? true : false,
       maxAge: 24 * 60 * 60 * 1000,
     });
+    
+    console.log(`Token generated for user: ${user.id}`);    
+    
 
     return res.json({ message: 'Logged in successfully', user: { id: user.id, role: user.role } });
   } catch (error) {
