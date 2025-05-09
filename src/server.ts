@@ -21,7 +21,7 @@ dotenv.config();
 
 const app = express();
 app.use(cors({
-  origin: 'http://localhost:3000',  // Frontend URL (make sure it's correct)
+  origin: 'douluxme-frontend-9d6g.vercel.app',  // Frontend URL (make sure it's correct)
   methods: 'GET, POST, PUT, DELETE, PATCH',  // Allowed methods
   allowedHeaders: ['Content-Type', 'Authorization'],  // Allowed headers
   credentials: true,  // Allow cookies to be sent with cross-origin requests
