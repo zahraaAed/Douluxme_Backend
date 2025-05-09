@@ -175,3 +175,25 @@ export const getMe = async (req: Request, res: Response): Promise<Response> => {
     return res.status(500).json({ error: 'Something went wrong' });
   }
 };
+// Logout function
+export const logout = (req: Request, res: Response): Response => {
+  res.clearCookie('token');
+  return res.json({ message: 'Logged out successfully' });
+};
+
+//delete user
+export const deleteUser = async (req: Request, res: Response): Promise<Response> => {
+  const { id } = req.params;
+
+  try {
+    const user = await User.findByPk(id);
+    if (!user || user.role !== 'admin') {
+      return res.status(403).json({ message: 'Permission denied. Admin access required.' });
+  }
+    await user.destroy();
+    return res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ error: 'Server error' });
+  }
+}
