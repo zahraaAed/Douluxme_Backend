@@ -60,12 +60,13 @@ export const register = async (
 
 // Login function
 export const login = async (
-  req: Request<{}, {}, LoginBody>, // Explicit types for request body
+  req: Request<{}, {}, { email: string; password: string }>,
   res: Response
 ): Promise<Response> => {
   try {
     const { email, password } = req.body;
     console.log(`Login attempt for email: ${email}`);
+    
     const user = await User.findOne({ where: { email } });
     if (!user) {
       console.log(`User not found: ${email}`);
@@ -86,41 +87,24 @@ export const login = async (
       process.env.JWT_SECRET ?? '',
       { expiresIn: '1d' }
     );
-    console.log('NODE_ENV:', process.env.NODE_ENV);
-
+    
+    // Fixed cookie configuration
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? true : false,
-      maxAge: 24 * 60 * 60 * 1000,
+      secure: true, // Required for SameSite=None
+      sameSite: 'none', // Fixed syntax
+      maxAge: 24 * 60 * 60 * 1000, // 1 day
+      path: '/', // Ensure cookie is available on all paths
     });
     
     console.log(`Token generated for user: ${user.id}`);    
-    
 
-    return res.json({ message: 'Logged in successfully', user: { id: user.id, role: user.role } });
-  } catch (error) {
-    console.error(error);
-    return res.status(500).json({ error: 'Server error' });
-  }
-};
-
-// Logout function
-export const logout = (req: Request, res: Response): Response => {
-  res.clearCookie('token');
-  return res.json({ message: 'Logged out successfully' });
-};
-
-//delete user
-export const deleteUser = async (req: Request, res: Response): Promise<Response> => {
-  const { id } = req.params;
-  try {
-    const user = await User.findByPk(id);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    await user.destroy();
-    return res.status(200).json({ message: 'User deleted successfully' });
+    // Also return the token in the response body for clients that can't use cookies
+    return res.json({ 
+      message: 'Logged in successfully', 
+      user: { id: user.id, role: user.role },
+      token // Include token in response for alternative auth method
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Server error' });
