@@ -9,37 +9,44 @@ interface CartBody {
 }   
 
 export const createCart = async (
-    req: Request<{}, {}, CartBody>, // Explicitly define types for Request
+    req: Request, 
     res: Response
-): Promise<Response> => {
+  ): Promise<Response> => {
     try {
-        const { userId, productId, quantity } = req.body;
-
-        // Check if user exists
-        const user = await User.findByPk(userId);
-        if (!user) {
-            return res.status(404).json({ message: 'User not found' });
-        }
-
-        // Check if product exists
-        const product = await Product.findByPk(productId);
-        if (!product) {
-            return res.status(404).json({ message: 'Product not found' });
-        }
-
-        // Create new cart item
-        const newCartItem = await Cart.create({
-            userId,
-            productId,
-            quantity
-        });
-
-        return res.status(201).json({ message: 'Cart item created successfully', cartItemId: newCartItem.id });
+      // Ensure the user is authenticated
+      if (!req.user) {
+        return res.status(401).json({ message: 'Unauthorized' });
+      }
+  
+      // Get the userId from the token
+      const userId = req.user.userId;
+  
+      // Extract productId and quantity from the request body
+      const { productId, quantity } = req.body;
+  
+      // Check if product exists
+      const product = await Product.findByPk(productId);
+      if (!product) {
+        return res.status(404).json({ message: 'Product not found' });
+      }
+  
+      // Create a new cart item
+      const newCartItem = await Cart.create({
+        userId: parseInt(userId),  // Ensure it's a number
+        productId,
+        quantity,
+      });
+  
+      return res.status(201).json({
+        message: 'Cart item created successfully',
+        cartItemId: newCartItem.id,
+      });
     } catch (error) {
-        console.error(error);
-        return res.status(500).json({ error: 'Server error' });
+      console.error(error);
+      return res.status(500).json({ error: 'Server error' });
     }
-}
+  };
+  
 export const getCarts = async (req: Request, res: Response): Promise<Response> => { 
     try {
         const carts = await Cart.findAll({

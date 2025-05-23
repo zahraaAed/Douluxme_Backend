@@ -10,10 +10,7 @@ interface FeedbackBody {
     UserId: number;
 }
 
-export const createFeedback = async (
-    req: Request,
-    res: Response
-  ): Promise<Response> => {
+export const createFeedback = async (req: Request, res: Response): Promise<Response> => {
     try {
       if (!req.user) {
         return res.status(401).json({ message: 'Unauthorized' });
@@ -24,7 +21,10 @@ export const createFeedback = async (
         return res.status(403).json({ message: 'Permission denied. Customer access required.' });
       }
   
+      // Destructure the comment and ProductId from the request body
       const { comment, ProductId } = req.body;
+  
+      // Validate input
       const UserId = parseInt(req.user.userId); // Extract userId from auth session/cookie
   
       if (!comment || !ProductId) {
@@ -92,7 +92,7 @@ export const getFeedbacks = async (req: Request, res: Response): Promise<Respons
                 {
                     model: User,
                     as: 'user',
-                    attributes: ['id', 'username'] // Adjust attributes as needed
+                    attributes: ['id', 'name'] // Adjust attributes as needed
                 }
             ]
         });

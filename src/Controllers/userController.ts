@@ -91,7 +91,7 @@ export const login = async (
     // Fixed cookie configuration
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true, // Required for SameSite=None
+      secure: process.env.NODE_ENV === 'production',
       sameSite: 'none', // Fixed syntax
       maxAge: 24 * 60 * 60 * 1000, // 1 day
       path: '/', // Ensure cookie is available on all paths
