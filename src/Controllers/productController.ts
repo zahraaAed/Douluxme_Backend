@@ -18,8 +18,16 @@ export const createProduct = async (
   req: Request<{}, {}, any>,
   res: Response
 ): Promise<Response> => {
-  const { name, nutId, chocolateId, extraNutIds, extraChocolateIds, categoryId, price, boxSize } = req.body;
-  const image = req.file ? req.file.filename : '';
+  const {
+    name,
+    nutId,
+    chocolateId,
+    extraNutIds,
+    extraChocolateIds,
+    categoryId,
+    price,
+    boxSize,
+  } = req.body;
 
   try {
     if (!req.user) {
@@ -31,49 +39,39 @@ export const createProduct = async (
       return res.status(403).json({ message: 'Permission denied. Admin access required.' });
     }
 
-    // Validate that nutId and chocolateId are provided as single values
     if (!nutId || !chocolateId) {
       return res.status(400).json({ message: 'nutId and chocolateId are required.' });
     }
 
-    // Validate extraNutIds and extraChocolateIds (if provided, they should be arrays)
+    // Parse extraNutIds and extraChocolateIds if provided
     let extraNutIdsArray: number[] = [];
     let extraChocolateIdsArray: number[] = [];
 
     if (extraNutIds) {
       try {
-        extraNutIdsArray = JSON.parse(extraNutIds);  // Parse the extraNutIds JSON string into an array
-      } catch (error) {
+        extraNutIdsArray = JSON.parse(extraNutIds);
+      } catch {
         return res.status(400).json({ message: 'Invalid extraNutIds format' });
       }
     }
 
     if (extraChocolateIds) {
       try {
-        extraChocolateIdsArray = JSON.parse(extraChocolateIds);  // Parse the extraChocolateIds JSON string into an array
-      } catch (error) {
+        extraChocolateIdsArray = JSON.parse(extraChocolateIds);
+      } catch {
         return res.status(400).json({ message: 'Invalid extraChocolateIds format' });
       }
     }
 
-    // Validate nutId and chocolateId (should be valid ids)
+    // Validate nuts, chocolates, category as before
     const nut = await Nut.findByPk(nutId);
     const chocolate = await Chocolate.findByPk(chocolateId);
     const category = await Category.findByPk(categoryId);
 
-    if (!nut) {
-      return res.status(404).json({ message: 'Nut not found.' });
-    }
+    if (!nut) return res.status(404).json({ message: 'Nut not found.' });
+    if (!chocolate) return res.status(404).json({ message: 'Chocolate not found.' });
+    if (!category) return res.status(404).json({ message: 'Category not found.' });
 
-    if (!chocolate) {
-      return res.status(404).json({ message: 'Chocolate not found.' });
-    }
-
-    if (!category) {
-      return res.status(404).json({ message: 'Category not found.' });
-    }
-
-    // Validate that extraNutIds and extraChocolateIds (if provided) are valid
     if (extraNutIdsArray.length > 0) {
       const extraNuts = await Nut.findAll({ where: { id: extraNutIdsArray } });
       if (extraNuts.length !== extraNutIdsArray.length) {
@@ -97,17 +95,39 @@ export const createProduct = async (
       finalPrice = price * boxSize;
     }
 
-    // Create product with the selected nutId and chocolateId, along with optional extraNutIds and extraChocolateIds
+    // Upload image to Supabase storage if file exists
+    let imageUrl = '';
+    if (req.file) {
+      const filename = `products/${Date.now()}_${req.file.originalname}`;
+
+      const { error } = await supabase.storage
+        .from('images') // Your bucket name
+        .upload(filename, req.file.buffer, {
+          contentType: req.file.mimetype,
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Supabase upload error:', error);
+        return res.status(500).json({ message: 'Image upload failed', error: error.message });
+      }
+
+      const { data } = supabase.storage.from('images').getPublicUrl(filename);
+imageUrl = data.publicUrl;
+
+    }
+
+    // Create product with image URL
     const newProduct = await Product.create({
       name,
-      nutId, // Store the single nutId
-      chocolateId, // Store the single chocolateId
+      nutId,
+      chocolateId,
       categoryId,
       price: finalPrice,
-      image,
+      image: imageUrl,
       userId: parseInt(req.user.userId),
-      extraNutIds: extraNutIdsArray,  // Store the extra nuts if any
-      extraChocolateIds: extraChocolateIdsArray,  // Store the extra chocolates if any
+      extraNutIds: extraNutIdsArray,
+      extraChocolateIds: extraChocolateIdsArray,
     });
 
     return res.status(201).json({
