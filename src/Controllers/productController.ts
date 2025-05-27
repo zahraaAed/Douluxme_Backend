@@ -11,7 +11,7 @@ interface ProductBody {
   categoryId: number; // Category can be used to classify products (e.g. gift, box, bar)
   price: number;
   image: string;
-  boxSize?: 6 | 12 | 24; // Optional box size for products
+  boxSize?: number; 
 }
 
 export const createProduct = async (
@@ -89,10 +89,11 @@ export const createProduct = async (
     // Handle price and box size
     let finalPrice = price;
     if (boxSize) {
-      if (![6, 12, 24].includes(boxSize)) {
+      if (boxSize && ![6, 12, 24].includes(Number(boxSize))) {
         return res.status(400).json({ message: 'Invalid box size. Allowed sizes are 6, 12, and 24.' });
       }
-      finalPrice = price * boxSize;
+      finalPrice = boxSize ? price * Number(boxSize) : price;
+      
     }
 
     // Upload image to Supabase storage if file exists
@@ -126,6 +127,7 @@ imageUrl = data.publicUrl;
       price: finalPrice,
       image: imageUrl,
       userId: parseInt(req.user.userId),
+      boxSize: Number(boxSize), 
       extraNutIds: extraNutIdsArray,
       extraChocolateIds: extraChocolateIdsArray,
     });
